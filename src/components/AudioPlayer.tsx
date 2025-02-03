@@ -99,8 +99,6 @@ export const AudioPlayer: React.FC = () => {
   };
 
   const handleNextAyah = () => {
-    console.log('current surah', currentSurah);
-
     if (!currentSurahAyahs || !currentAyah) return;
 
     const currentIndex = currentSurahAyahs.findIndex(
@@ -129,7 +127,6 @@ export const AudioPlayer: React.FC = () => {
         <audio
           ref={audioRef}
           onEnded={() => {
-            console.log('Audio ended, calling handleAudioEnd');
             handleAudioEnd();
           }}
           onError={() => {
@@ -146,11 +143,11 @@ export const AudioPlayer: React.FC = () => {
           )}
           <div className='flex items-center justify-center space-x-6'>
             <button
-              className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full disabled:opacity-50'
+              className='p-2 hover:text-yellow-500 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full disabled:opacity-50'
               disabled={isFirstAyah || isLoading}
               onClick={handlePrevAyah}
             >
-              <SkipBack className='w-6 h-6' />
+              <SkipBack className='w-6 h-6 text-gray-600 dark:text-gray-300' />
             </button>
             <button
               onClick={handlePlayPause}
@@ -166,11 +163,11 @@ export const AudioPlayer: React.FC = () => {
               )}
             </button>
             <button
-              className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full disabled:opacity-50'
+              className='p-2 hover:text-yellow-500 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full disabled:opacity-50'
               disabled={isLastAyah || isLoading}
               onClick={handleNextAyah}
             >
-              <SkipForward className='w-6 h-6' />
+              <SkipForward className='w-6 h-6 text-gray-600 dark:text-gray-300' />
             </button>
           </div>
         </div>

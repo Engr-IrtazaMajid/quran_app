@@ -1,9 +1,11 @@
 import React from 'react';
 import { useQuery } from 'react-query';
+import { useNavigate } from 'react-router-dom';
 import { useQuranStore } from '../store/quranStore';
 import { fetchSurahs, fetchAyahs } from '../services/api';
 
 export const SurahList: React.FC = () => {
+  const navigate = useNavigate();
   const {
     setCurrentSurah,
     setCurrentSurahAyahs,
@@ -17,6 +19,7 @@ export const SurahList: React.FC = () => {
     const ayahs = await fetchAyahs(surah.number, currentReciter?.id);
     setCurrentSurahAyahs(ayahs);
     setCurrentAyah(ayahs[0]);
+    navigate(`/surah/${surah.number}`);
   };
 
   if (isLoading) {
@@ -28,7 +31,7 @@ export const SurahList: React.FC = () => {
   }
 
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4'>
+    <div className='mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5'>
       {surahs?.map((surah) => (
         <div
           key={surah.number}
