@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Loader2 } from 'lucide-react';
 import { useQuranStore } from '../store/quranStore';
+import { useNavigate } from 'react-router-dom';
 
 export const AudioPlayer: React.FC = () => {
+  const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
   const {
     isPlaying,
@@ -110,6 +112,12 @@ export const AudioPlayer: React.FC = () => {
     }
   };
 
+  const navigateToCurrentAyah = () => {
+    if (currentSurah && currentAyah) {
+      navigate(`/surah/${currentSurah.number}`);
+    }
+  };
+
   const isFirstAyah =
     !currentSurahAyahs || !currentAyah
       ? true
@@ -137,9 +145,12 @@ export const AudioPlayer: React.FC = () => {
         />
         <div className='flex flex-col items-center space-y-2'>
           {currentAyah && currentSurah && (
-            <div className='text-sm text-gray-600 dark:text-gray-300'>
+            <button
+              onClick={navigateToCurrentAyah}
+              className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors'
+            >
               {currentSurah.englishName} - Verse {currentAyah.numberInSurah}
-            </div>
+            </button>
           )}
           <div className='flex items-center justify-center space-x-6'>
             <button

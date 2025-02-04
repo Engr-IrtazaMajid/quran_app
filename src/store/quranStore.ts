@@ -19,7 +19,21 @@ interface QuranStore {
   setAudioRef: (ref: HTMLAudioElement) => void;
   setIsLoading: (loading: boolean) => void;
   preloadNextAyah: () => void;
+  loadStoredState: () => void;
 }
+
+const STORAGE_KEY = 'quran-app-state';
+
+const saveState = (state: any) => {
+  const stateToSave = {
+    currentSurah: state.currentSurah,
+    currentAyah: state.currentAyah,
+    currentSurahAyahs: state.currentSurahAyahs,
+    currentReciter: state.currentReciter,
+    isDarkMode: state.isDarkMode,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+};
 
 export const useQuranStore = create<QuranStore>((set, get) => ({
   currentSurah: null,
@@ -30,17 +44,34 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
   isDarkMode: false,
   audioRef: null,
   isLoading: false,
-  setCurrentSurah: (surah) => set({ currentSurah: surah }),
-  setCurrentAyah: (ayah) => set({ currentAyah: ayah }),
-  setCurrentSurahAyahs: (ayahs) => set({ currentSurahAyahs: ayahs }),
-  setCurrentReciter: (reciter) => set({ currentReciter: reciter }),
+  setCurrentSurah: (surah) => {
+    set({ currentSurah: surah });
+    saveState({ ...get(), currentSurah: surah });
+  },
+  setCurrentAyah: (ayah) => {
+    set({ currentAyah: ayah });
+    saveState({ ...get(), currentAyah: ayah });
+  },
+  setCurrentSurahAyahs: (ayahs) => {
+    set({ currentSurahAyahs: ayahs });
+    saveState({ ...get(), currentSurahAyahs: ayahs });
+  },
+  setCurrentReciter: (reciter) => {
+    set({ currentReciter: reciter });
+    saveState({ ...get(), currentReciter: reciter });
+  },
   togglePlayback: () => set((state) => ({ isPlaying: !state.isPlaying })),
-  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+  toggleDarkMode: () => {
+    set((state) => {
+      const newDarkMode = !state.isDarkMode;
+      saveState({ ...get(), isDarkMode: newDarkMode });
+      return { isDarkMode: newDarkMode };
+    });
+  },
   setAudioRef: (ref) => set({ audioRef: ref }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   preloadNextAyah: () => {
     const { currentAyah, currentSurahAyahs } = get();
-    // Ensure currentSurah and ayahs are properly defined
     if (!currentSurahAyahs || !currentAyah) return;
 
     const currentIndex = currentSurahAyahs.findIndex(
@@ -55,6 +86,13 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
       const audio = new Audio();
       audio.src = nextAyah.audio;
       audio.preload = 'auto';
+    }
+  },
+  loadStoredState: () => {
+    const storedState = localStorage.getItem(STORAGE_KEY);
+    if (storedState) {
+      const parsedState = JSON.parse(storedState);
+      set(parsedState);
     }
   },
 }));

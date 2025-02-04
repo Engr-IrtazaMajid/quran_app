@@ -1,4 +1,4 @@
-import { Book, Moon, Sun, ArrowLeft } from 'lucide-react';
+import { Book, Moon, Sun, ArrowLeft, Clock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ReciterSelector } from './ReciterSelector';
 import { useQuranStore } from '../store/quranStore';
@@ -8,6 +8,7 @@ export const NavBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isRootPage = location.pathname === '/';
+  const isPrayerPage = location.pathname === '/prayer-times';
 
   return (
     <header className='bg-white dark:bg-gray-800 shadow-md fixed top-0 left-0 right-0 z-50'>
@@ -15,21 +16,28 @@ export const NavBar = () => {
         <div className='flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center space-x-4'>
-              {!isRootPage ? (
+              {!isRootPage && (
                 <button
                   onClick={() => navigate('/')}
                   className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full'
                 >
                   <ArrowLeft className='w-6 h-6 text-gray-400' />
                 </button>
-              ) : (
-                ''
               )}
               <h1 className='text-2xl font-semibold text-gray-900 dark:text-white flex items-center'>
-                <Book className='w-6 h-6 text-emerald-500 mr-2 inline-block' />
-                {!isRootPage && currentSurah
-                  ? currentSurah.englishName
-                  : 'Quran App'}
+                {isPrayerPage ? (
+                  <>
+                    <Clock className='w-6 h-6 text-emerald-500 mr-2 inline-block' />
+                    Prayer Times
+                  </>
+                ) : (
+                  <>
+                    <Book className='w-6 h-6 text-emerald-500 mr-2 inline-block' />
+                    {!isRootPage && currentSurah
+                      ? currentSurah.englishName
+                      : 'Quran App'}
+                  </>
+                )}
               </h1>
             </div>
             <button
@@ -44,21 +52,29 @@ export const NavBar = () => {
             </button>
           </div>
           <div className='flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4'>
-            {/* <div className='relative w-full md:w-auto'> // TODO: Implement search
-              <input
-                type='text'
-                placeholder='Search...'
-                className='w-full md:w-auto pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500'
-              />
-              <Search className='w-5 h-5 text-gray-400 absolute left-3 top-2.5' />
-            </div> */}
-            <ReciterSelector />
+            {!isPrayerPage && <ReciterSelector />}
+            <button
+              onClick={() => navigate(isPrayerPage ? '/' : '/prayer-times')}
+              className='px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center'
+            >
+              {isPrayerPage ? (
+                <>
+                  <Book className='w-5 h-5 mr-2' />
+                  Back to Quran
+                </>
+              ) : (
+                <>
+                  <Clock className='w-5 h-5 mr-2' />
+                  Prayer Times
+                </>
+              )}
+            </button>
             <button
               onClick={toggleDarkMode}
               className='hidden md:block p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full'
             >
               {isDarkMode ? (
-                <Sun className='w-6 h-6 text-gray-400' />
+                <Sun className='w-6 h-6 text-yellow-500' />
               ) : (
                 <Moon className='w-6 h-6 text-gray-400' />
               )}
