@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Loader2 } from 'lucide-react';
 import { useQuranStore } from '../store/quranStore';
 import { useNavigate } from 'react-router-dom';
@@ -6,13 +6,17 @@ import { useNavigate } from 'react-router-dom';
 export const AudioPlayer: React.FC = () => {
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const urduAudioRef = useRef<HTMLAudioElement>(null);
+  const [isUrduPlaying, setIsUrduPlaying] = useState(false);
   const {
     isPlaying,
     currentAyah,
     currentSurah,
     currentSurahAyahs,
+    audioSettings,
     togglePlayback,
     setAudioRef,
+    setUrduAudioRef,
     setCurrentAyah,
     isLoading,
     setIsLoading,
@@ -23,7 +27,10 @@ export const AudioPlayer: React.FC = () => {
     if (audioRef.current) {
       setAudioRef(audioRef.current);
     }
-  }, [setAudioRef]);
+    if (urduAudioRef.current) {
+      setUrduAudioRef(urduAudioRef.current);
+    }
+  }, [setAudioRef, setUrduAudioRef]);
 
   useEffect(() => {
     const loadAndPlayAudio = async () => {
@@ -31,8 +38,18 @@ export const AudioPlayer: React.FC = () => {
 
       try {
         setIsLoading(true);
+        setIsUrduPlaying(false);
         audioRef.current.src = currentAyah.audio;
         await audioRef.current.load();
+
+        if (
+          audioSettings.withTranslation &&
+          urduAudioRef.current &&
+          currentAyah.urduAudio
+        ) {
+          urduAudioRef.current.src = currentAyah.urduAudio;
+          await urduAudioRef.current.load();
+        }
 
         if (isPlaying) {
           await audioRef.current.play();
@@ -47,7 +64,14 @@ export const AudioPlayer: React.FC = () => {
     };
 
     loadAndPlayAudio();
-  }, [currentAyah, isPlaying, togglePlayback, setIsLoading, preloadNextAyah]);
+  }, [
+    currentAyah,
+    isPlaying,
+    audioSettings.withTranslation,
+    togglePlayback,
+    setIsLoading,
+    preloadNextAyah,
+  ]);
 
   const handlePlayPause = async () => {
     if (!audioRef.current || !currentAyah?.audio) return;
@@ -55,6 +79,10 @@ export const AudioPlayer: React.FC = () => {
     try {
       if (isPlaying) {
         await audioRef.current.pause();
+        if (urduAudioRef.current) {
+          await urduAudioRef.current.pause();
+        }
+        setIsUrduPlaying(false);
       } else {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
@@ -71,33 +99,28 @@ export const AudioPlayer: React.FC = () => {
     }
   };
 
-  const handleAudioEnd = () => {
-    if (!currentSurahAyahs || !currentAyah) return;
-
-    const currentIndex = currentSurahAyahs.findIndex(
-      (ayah) => ayah.number === currentAyah.number
-    );
-
-    if (currentIndex === -1) return;
-
-    const nextAyah = currentSurahAyahs[currentIndex + 1];
-    if (nextAyah) {
-      setCurrentAyah(nextAyah);
+  const handleArabicAudioEnd = async () => {
+    if (
+      audioSettings.withTranslation &&
+      urduAudioRef.current &&
+      currentAyah?.urduAudio
+    ) {
+      try {
+        setIsUrduPlaying(true);
+        await urduAudioRef.current.play();
+      } catch (error) {
+        console.error('Urdu audio playback error:', error);
+        setIsUrduPlaying(false);
+        handleNextAyah();
+      }
     } else {
-      togglePlayback();
+      handleNextAyah();
     }
   };
 
-  const handlePrevAyah = () => {
-    if (!currentSurahAyahs || !currentAyah) return;
-
-    const currentIndex = (currentSurahAyahs || []).findIndex(
-      (ayah) => ayah.number === currentAyah.number
-    );
-
-    if (currentIndex > 0) {
-      setCurrentAyah(currentSurahAyahs?.[currentIndex - 1] || null);
-    }
+  const handleUrduAudioEnd = () => {
+    setIsUrduPlaying(false);
+    handleNextAyah();
   };
 
   const handleNextAyah = () => {
@@ -109,6 +132,20 @@ export const AudioPlayer: React.FC = () => {
 
     if (currentIndex < currentSurahAyahs.length - 1) {
       setCurrentAyah(currentSurahAyahs[currentIndex + 1]);
+    } else {
+      togglePlayback();
+    }
+  };
+
+  const handlePrevAyah = () => {
+    if (!currentSurahAyahs || !currentAyah) return;
+
+    const currentIndex = currentSurahAyahs.findIndex(
+      (ayah) => ayah.number === currentAyah.number
+    );
+
+    if (currentIndex > 0) {
+      setCurrentAyah(currentSurahAyahs[currentIndex - 1]);
     }
   };
 
@@ -134,23 +171,36 @@ export const AudioPlayer: React.FC = () => {
       <div className='container mx-auto px-4 py-4'>
         <audio
           ref={audioRef}
-          onEnded={() => {
-            handleAudioEnd();
-          }}
+          onEnded={handleArabicAudioEnd}
           onError={() => {
             if (isPlaying) {
               togglePlayback();
             }
           }}
         />
+        <audio
+          ref={urduAudioRef}
+          onEnded={handleUrduAudioEnd}
+          onError={() => {
+            setIsUrduPlaying(false);
+            handleNextAyah();
+          }}
+        />
         <div className='flex flex-col items-center space-y-2'>
           {currentAyah && currentSurah && (
-            <button
-              onClick={navigateToCurrentAyah}
-              className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors'
-            >
-              {currentSurah.englishName} - Verse {currentAyah.numberInSurah}
-            </button>
+            <div className='text-center'>
+              <button
+                onClick={navigateToCurrentAyah}
+                className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors'
+              >
+                {currentSurah.englishName} - Verse {currentAyah.numberInSurah}
+              </button>
+              {isUrduPlaying && (
+                <p className='text-xs text-emerald-500 mt-1'>
+                  Playing Urdu Translation
+                </p>
+              )}
+            </div>
           )}
           <div className='flex items-center justify-center space-x-6'>
             <button

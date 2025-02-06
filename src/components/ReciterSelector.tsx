@@ -10,7 +10,9 @@ export const ReciterSelector: React.FC = () => {
     setCurrentReciter,
     setCurrentSurahAyahs,
     currentSurah,
+    audioSettings,
   } = useQuranStore();
+
   const { data: reciters, isLoading } = useQuery('reciters', fetchReciters);
 
   if (isLoading) {
@@ -21,11 +23,19 @@ export const ReciterSelector: React.FC = () => {
     );
   }
 
-  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const reciter = reciters?.find((r) => r.id === e.target.value);
+  const arabicReciters = reciters?.filter((r) => r.language === 'ar') || [];
+
+  const handleArabicReciterChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const reciter = arabicReciters.find((r) => r.id === e.target.value);
     if (reciter) {
       setCurrentReciter(reciter);
-      const ayahs = await fetchAyahs(currentSurah?.number || 1, reciter.id);
+      const ayahs = await fetchAyahs(
+        currentSurah?.number || 1,
+        reciter.id,
+        audioSettings.withTranslation
+      );
       setCurrentSurahAyahs(ayahs);
     }
   };
@@ -35,11 +45,11 @@ export const ReciterSelector: React.FC = () => {
       <Mic2 className='w-5 h-5 text-emerald-500 flex-shrink-0' />
       <select
         value={currentReciter?.id || ''}
-        onChange={handleChange}
+        onChange={handleArabicReciterChange}
         className='form-select block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white'
       >
         <option value=''>Select Reciter</option>
-        {reciters?.map((reciter) => (
+        {arabicReciters.map((reciter) => (
           <option key={reciter.id} value={reciter.id}>
             {reciter.name}
           </option>

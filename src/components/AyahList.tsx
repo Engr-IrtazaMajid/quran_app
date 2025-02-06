@@ -3,6 +3,7 @@ import { useParams, Navigate } from 'react-router-dom';
 import { useQuranStore } from '../store/quranStore';
 import { useQuery } from 'react-query';
 import { fetchAyahs } from '../services/api';
+import { Globe2 } from 'lucide-react';
 
 export const AyahList = () => {
   const { number } = useParams();
@@ -15,12 +16,19 @@ export const AyahList = () => {
     currentSurah,
     setCurrentSurahAyahs,
     currentReciter,
+    audioSettings,
+    toggleTranslation,
     isDarkMode,
   } = useQuranStore();
 
   useQuery(
-    ['ayahs', number, currentReciter?.id],
-    () => fetchAyahs(Number(number), currentReciter?.id),
+    ['ayahs', number, currentReciter?.id, audioSettings.withTranslation],
+    () =>
+      fetchAyahs(
+        Number(number),
+        currentReciter?.id,
+        audioSettings.withTranslation
+      ),
     {
       enabled: !!number && !!currentReciter?.id,
       onSuccess: (data) => {
@@ -49,14 +57,27 @@ export const AyahList = () => {
 
   return (
     <div className='space-y-4 mt-24 md:mt-20'>
-      <div className='top-20 bg-gray-50 dark:bg-gray-900 py-4 z-10'>
-        <div className='text-center'>
-          <h2 className='text-3xl font-arabic text-gray-900 dark:text-white mb-2'>
+      <div className='sticky top-20 bg-gray-50 dark:bg-gray-900 py-4 z-10'>
+        <div className='text-center space-y-4'>
+          <h2 className='text-2xl sm:text-3xl font-arabic text-gray-900 dark:text-white mb-2'>
             {currentSurah.name}
           </h2>
-          <p className='text-lg text-gray-600 dark:text-gray-300'>
-            {currentSurah.englishName} - {currentSurah.englishNameTranslation}
-          </p>
+          <button
+            onClick={toggleTranslation}
+            className={`inline-flex items-center px-4 py-2 rounded-full transition-all duration-300 space-x-2
+        ${
+          audioSettings.withTranslation
+            ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+        }`}
+          >
+            <Globe2 className='w-5 h-5' />
+            <span className='font-medium'>
+              {audioSettings.withTranslation
+                ? 'Translation On'
+                : 'Translation Off'}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -88,9 +109,6 @@ export const AyahList = () => {
             >
               {ayah.numberInSurah}
             </span>
-            {/* <button className='text-gray-400 transition-colors hover:text-yellow-800 dark:hover:text-emerald-400'> TODO: Implement bookmark
-              <Bookmark className='w-5 h-5' />
-            </button> */}
           </div>
           <div className='space-y-4'>
             <p
@@ -105,9 +123,9 @@ export const AyahList = () => {
             >
               {ayah.text}
             </p>
-            {ayah.translation && (
+            {audioSettings.withTranslation && ayah.urduTranslation && (
               <p
-                className={`text-lg transition-colors duration-300 ${
+                className={`text-2xl font-arabic text-right leading-loose transition-colors duration-300 ${
                   currentAyah?.number === ayah.number
                     ? isDarkMode
                       ? 'text-emerald-300'
@@ -115,7 +133,7 @@ export const AyahList = () => {
                     : 'text-gray-600 dark:text-gray-300 hover:text-yellow-800 dark:hover:text-emerald-400'
                 }`}
               >
-                {ayah.translation}
+                {ayah.urduTranslation}
               </p>
             )}
           </div>

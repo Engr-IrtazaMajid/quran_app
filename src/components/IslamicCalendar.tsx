@@ -116,12 +116,12 @@ export const IslamicCalendar: React.FC = () => {
     days.push(
       <td key={dayCount} className='p-2 text-center'>
         <span
-          className={`inline-block w-10 h-10 leading-10 rounded-lg shadow-md text-gray-900 dark:text-white
-            ${
-              isToday
-                ? 'bg-emerald-500 text-white shadow-lg'
-                : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-            }`}
+          className={`aspect-square flex items-center justify-center rounded-lg shadow-md text-gray-900 dark:text-white
+          ${
+            isToday
+              ? 'bg-emerald-500 text-white shadow-lg'
+              : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+          }text-sm md:text-base lg:text-lg`}
         >
           {dayCount}
         </span>
@@ -176,7 +176,7 @@ export const IslamicCalendar: React.FC = () => {
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
               <th
                 key={day}
-                className='p-3 text-sm font-semibold text-gray-900 dark:text-white'
+                className='p-3 text-sm font-semibold text-gray-900 dark:text-white md:text-base lg:text-lg'
               >
                 {day}
               </th>

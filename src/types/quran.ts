@@ -13,11 +13,18 @@ export interface Ayah {
   numberInSurah: number;
   juz: number;
   translation?: string;
+  urduTranslation?: string;
   audio?: string;
+  urduAudio?: string;
 }
 
 export interface Reciter {
   id: string;
   name: string;
   style?: string;
+  language?: 'ar' | 'ur';
+}
+
+export interface AudioSettings {
+  withTranslation: boolean;
 }
