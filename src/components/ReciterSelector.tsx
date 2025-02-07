@@ -46,7 +46,7 @@ export const ReciterSelector: React.FC = () => {
       <select
         value={currentReciter?.id || ''}
         onChange={handleArabicReciterChange}
-        className='form-select block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white'
+        className='form-select block w-full py-2 px-3 rounded-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-emerald-500 dark:hover:border-emerald-400 focus:outline-none'
       >
         <option value=''>Select Reciter</option>
         {arabicReciters.map((reciter) => (

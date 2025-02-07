@@ -6,38 +6,44 @@ interface QuranStore {
   currentAyah: Ayah | null;
   currentSurahAyahs: Ayah[] | null;
   currentReciter: Reciter | null;
-  urduReciter: Reciter | null;
+  translationReciters: { [key: string]: Reciter };
   audioSettings: AudioSettings;
   isPlaying: boolean;
   isDarkMode: boolean;
   audioRef: HTMLAudioElement | null;
-  urduAudioRef: HTMLAudioElement | null;
+  translationAudioRef: HTMLAudioElement | null;
   isLoading: boolean;
   setCurrentSurah: (surah: Surah & { ayahs: Ayah[] }) => void;
   setCurrentAyah: (ayah: Ayah | null) => void;
   setCurrentSurahAyahs: (ayahs: Ayah[]) => void;
   setCurrentReciter: (reciter: Reciter) => void;
-  setUrduReciter: (reciter: Reciter) => void;
+  setTranslationReciter: (language: string, reciter: Reciter) => void;
   togglePlayback: () => void;
   toggleDarkMode: () => void;
   setAudioRef: (ref: HTMLAudioElement) => void;
-  setUrduAudioRef: (ref: HTMLAudioElement) => void;
+  setTranslationAudioRef: (ref: HTMLAudioElement) => void;
   setIsLoading: (loading: boolean) => void;
   toggleTranslation: () => void;
+  setTranslationLanguage: (language: string) => void;
   preloadNextAyah: () => void;
   loadStoredState: () => void;
+  setDisplayLanguage: (language: string) => void;
 }
 
 const STORAGE_KEY = 'quran-app-state';
 
-const saveState = (state: any) => {
+const saveState = (state: QuranStore) => {
   const stateToSave = {
     currentSurah: state.currentSurah,
     currentAyah: state.currentAyah,
     currentSurahAyahs: state.currentSurahAyahs,
     currentReciter: state.currentReciter,
-    urduReciter: state.urduReciter,
-    audioSettings: state.audioSettings,
+    translationReciters: state.translationReciters,
+    audioSettings: {
+      withTranslation: state.audioSettings.withTranslation,
+      selectedLanguage: state.audioSettings.selectedLanguage,
+      displayLanguage: state.audioSettings.displayLanguage,
+    },
     isDarkMode: state.isDarkMode,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
@@ -48,14 +54,16 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
   currentAyah: null,
   currentSurahAyahs: null,
   currentReciter: null,
-  urduReciter: null,
+  translationReciters: {},
   audioSettings: {
     withTranslation: false,
+    selectedLanguage: 'en',
+    displayLanguage: 'en',
   },
   isPlaying: false,
   isDarkMode: false,
   audioRef: null,
-  urduAudioRef: null,
+  translationAudioRef: null,
   isLoading: false,
   setCurrentSurah: (surah) => {
     set({ currentSurah: surah });
@@ -73,9 +81,20 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
     set({ currentReciter: reciter });
     saveState({ ...get(), currentReciter: reciter });
   },
-  setUrduReciter: (reciter) => {
-    set({ urduReciter: reciter });
-    saveState({ ...get(), urduReciter: reciter });
+  setTranslationReciter: (language, reciter) => {
+    set((state) => ({
+      translationReciters: {
+        ...state.translationReciters,
+        [language]: reciter,
+      },
+    }));
+    saveState({
+      ...get(),
+      translationReciters: {
+        ...get().translationReciters,
+        [language]: reciter,
+      },
+    });
   },
   togglePlayback: () => set((state) => ({ isPlaying: !state.isPlaying })),
   toggleDarkMode: () => {
@@ -95,8 +114,18 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
       return { audioSettings: newSettings };
     });
   },
+  setTranslationLanguage: (language: string) => {
+    set((state) => ({
+      audioSettings: {
+        ...state.audioSettings,
+        selectedLanguage: language,
+        displayLanguage: language,
+      },
+    }));
+    saveState(get());
+  },
   setAudioRef: (ref) => set({ audioRef: ref }),
-  setUrduAudioRef: (ref) => set({ urduAudioRef: ref }),
+  setTranslationAudioRef: (ref) => set({ translationAudioRef: ref }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   preloadNextAyah: () => {
     const { currentAyah, currentSurahAyahs, audioSettings } = get();
@@ -115,10 +144,14 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
       audio.src = nextAyah.audio;
       audio.preload = 'auto';
 
-      if (audioSettings.withTranslation && nextAyah.urduAudio) {
-        const urduAudio = new Audio();
-        urduAudio.src = nextAyah.urduAudio;
-        urduAudio.preload = 'auto';
+      if (
+        audioSettings.withTranslation &&
+        nextAyah.translationAudios[audioSettings.selectedLanguage]
+      ) {
+        const translationAudio = new Audio();
+        translationAudio.src =
+          nextAyah.translationAudios[audioSettings.selectedLanguage];
+        translationAudio.preload = 'auto';
       }
     }
   },
@@ -126,7 +159,22 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
     const storedState = localStorage.getItem(STORAGE_KEY);
     if (storedState) {
       const parsedState = JSON.parse(storedState);
-      set(parsedState);
+      set({
+        ...parsedState,
+        audioSettings: {
+          ...parsedState.audioSettings,
+          selectedLanguage: parsedState.audioSettings?.selectedLanguage || 'en',
+        },
+      });
     }
+  },
+  setDisplayLanguage: (language: string) => {
+    set((state) => ({
+      audioSettings: {
+        ...state.audioSettings,
+        displayLanguage: language,
+      },
+    }));
+    saveState(get());
   },
 }));

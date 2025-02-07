@@ -60,7 +60,7 @@ export const NavBar = () => {
             {!isSurahPage && (
               <button
                 onClick={() => navigate(isPrayerPage ? '/' : '/prayer-times')}
-                className='px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center'
+                className='px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 rounded-full hover:bg-emerald-600 transition-colors flex items-center justify-center'
               >
                 {isPrayerPage ? (
                   <>

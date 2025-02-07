@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 export const AudioPlayer: React.FC = () => {
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
-  const urduAudioRef = useRef<HTMLAudioElement>(null);
-  const [isUrduPlaying, setIsUrduPlaying] = useState(false);
+  const translationAudioRef = useRef<HTMLAudioElement>(null);
+  const [isTranslationPlaying, setIsTranslationPlaying] = useState(false);
   const {
     isPlaying,
     currentAyah,
@@ -16,7 +16,7 @@ export const AudioPlayer: React.FC = () => {
     audioSettings,
     togglePlayback,
     setAudioRef,
-    setUrduAudioRef,
+    setTranslationAudioRef,
     setCurrentAyah,
     isLoading,
     setIsLoading,
@@ -27,10 +27,10 @@ export const AudioPlayer: React.FC = () => {
     if (audioRef.current) {
       setAudioRef(audioRef.current);
     }
-    if (urduAudioRef.current) {
-      setUrduAudioRef(urduAudioRef.current);
+    if (translationAudioRef.current) {
+      setTranslationAudioRef(translationAudioRef.current);
     }
-  }, [setAudioRef, setUrduAudioRef]);
+  }, [setAudioRef, setTranslationAudioRef]);
 
   useEffect(() => {
     const loadAndPlayAudio = async () => {
@@ -38,17 +38,18 @@ export const AudioPlayer: React.FC = () => {
 
       try {
         setIsLoading(true);
-        setIsUrduPlaying(false);
+        setIsTranslationPlaying(false);
         audioRef.current.src = currentAyah.audio;
         await audioRef.current.load();
 
         if (
           audioSettings.withTranslation &&
-          urduAudioRef.current &&
-          currentAyah.urduAudio
+          translationAudioRef.current &&
+          currentAyah.translationAudios[audioSettings.selectedLanguage]
         ) {
-          urduAudioRef.current.src = currentAyah.urduAudio;
-          await urduAudioRef.current.load();
+          translationAudioRef.current.src =
+            currentAyah.translationAudios[audioSettings.selectedLanguage];
+          await translationAudioRef.current.load();
         }
 
         if (isPlaying) {
@@ -68,6 +69,7 @@ export const AudioPlayer: React.FC = () => {
     currentAyah,
     isPlaying,
     audioSettings.withTranslation,
+    audioSettings.selectedLanguage,
     togglePlayback,
     setIsLoading,
     preloadNextAyah,
@@ -79,10 +81,10 @@ export const AudioPlayer: React.FC = () => {
     try {
       if (isPlaying) {
         await audioRef.current.pause();
-        if (urduAudioRef.current) {
-          await urduAudioRef.current.pause();
+        if (translationAudioRef.current) {
+          await translationAudioRef.current.pause();
         }
-        setIsUrduPlaying(false);
+        setIsTranslationPlaying(false);
       } else {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
@@ -102,15 +104,15 @@ export const AudioPlayer: React.FC = () => {
   const handleArabicAudioEnd = async () => {
     if (
       audioSettings.withTranslation &&
-      urduAudioRef.current &&
-      currentAyah?.urduAudio
+      translationAudioRef.current &&
+      currentAyah?.translationAudios[audioSettings.selectedLanguage]
     ) {
       try {
-        setIsUrduPlaying(true);
-        await urduAudioRef.current.play();
+        setIsTranslationPlaying(true);
+        await translationAudioRef.current.play();
       } catch (error) {
-        console.error('Urdu audio playback error:', error);
-        setIsUrduPlaying(false);
+        console.error('Translation audio playback error:', error);
+        setIsTranslationPlaying(false);
         handleNextAyah();
       }
     } else {
@@ -118,8 +120,8 @@ export const AudioPlayer: React.FC = () => {
     }
   };
 
-  const handleUrduAudioEnd = () => {
-    setIsUrduPlaying(false);
+  const handleTranslationAudioEnd = () => {
+    setIsTranslationPlaying(false);
     handleNextAyah();
   };
 
@@ -179,10 +181,10 @@ export const AudioPlayer: React.FC = () => {
           }}
         />
         <audio
-          ref={urduAudioRef}
-          onEnded={handleUrduAudioEnd}
+          ref={translationAudioRef}
+          onEnded={handleTranslationAudioEnd}
           onError={() => {
-            setIsUrduPlaying(false);
+            setIsTranslationPlaying(false);
             handleNextAyah();
           }}
         />
@@ -191,13 +193,14 @@ export const AudioPlayer: React.FC = () => {
             <div className='text-center'>
               <button
                 onClick={navigateToCurrentAyah}
-                className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors'
+                className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors underline'
               >
                 {currentSurah.englishName} - Verse {currentAyah.numberInSurah}
               </button>
-              {isUrduPlaying && (
+              {isTranslationPlaying && (
                 <p className='text-xs text-emerald-500 mt-1'>
-                  Playing Urdu Translation
+                  Playing {audioSettings.selectedLanguage.toUpperCase()}{' '}
+                  Translation
                 </p>
               )}
             </div>
@@ -213,7 +216,7 @@ export const AudioPlayer: React.FC = () => {
             <button
               onClick={handlePlayPause}
               disabled={!currentAyah?.audio || isLoading}
-              className='p-3 bg-emerald-500 hover:bg-emerald-600 rounded-full text-white disabled:opacity-50 disabled:cursor-not-allowed relative'
+              className='p-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed relative'
             >
               {isLoading ? (
                 <Loader2 className='w-8 h-8 animate-spin' />

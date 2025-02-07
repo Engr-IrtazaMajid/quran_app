@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Surah, Ayah, Reciter } from '../types/quran';
+import { Surah, Ayah, Reciter, SUPPORTED_LANGUAGES } from '../types/quran';
 
 const api = axios.create({
   baseURL: 'https://api.alquran.cloud/v1',
@@ -13,50 +13,68 @@ export const fetchSurahs = async (): Promise<Surah[]> => {
 export const fetchAyahs = async (
   surahNumber: number,
   reciter: string = 'ar.alafasy',
-  withTranslation: boolean = false
+  withTranslation: boolean = false,
+  language: string = 'ur'
 ): Promise<Ayah[]> => {
-  const [arabicResponse, urduResponse, urduAudioResponse] = await Promise.all([
-    api.get(`/surah/${surahNumber}/${reciter}`),
-    withTranslation ? api.get(`/surah/${surahNumber}/ur.jalandhry`) : null,
-    withTranslation ? api.get(`/surah/${surahNumber}/ur.khan`) : null,
-  ]);
+  // Get translation edition for text (non-audio)
+  const languageConfig = SUPPORTED_LANGUAGES.find(
+    (lang) => lang.code === language
+  );
+  const translationEdition = languageConfig?.edition || 'ur.khan';
+
+  // First get all available reciters to find translation reciter
+  const recitersResponse = await api.get('/edition/format/audio');
+  const allReciters = recitersResponse.data.data;
+
+  // Find audio reciter for the selected language
+  const audioReciter = allReciters.find(
+    (rec: any) => rec.language === language && rec.format === 'audio'
+  );
+
+  // Now fetch both Arabic and translations (text and audio)
+  const [arabicResponse, translationTextResponse, translationAudioResponse] =
+    await Promise.all([
+      api.get(`/surah/${surahNumber}/${reciter}`),
+      withTranslation
+        ? api.get(`/surah/${surahNumber}/${translationEdition}`)
+        : null,
+      withTranslation && audioReciter
+        ? api.get(`/surah/${surahNumber}/${audioReciter.identifier}`)
+        : null,
+    ]);
 
   const arabicAyahs = arabicResponse.data.data.ayahs;
-  const urduAyahs = urduResponse?.data.data.ayahs || [];
-  const urduAudioAyahs = urduAudioResponse?.data.data.ayahs || [];
+  const translationTextAyahs = translationTextResponse?.data.data.ayahs || [];
+  const translationAudioAyahs = translationAudioResponse?.data.data.ayahs || [];
 
   return arabicAyahs.map((ayah: any, index: number) => ({
     ...ayah,
-    urduTranslation: urduAyahs[index]?.text || '',
-    urduAudio: urduAudioAyahs[index]?.audio || '',
+    number: ayah.number,
+    numberInSurah: ayah.numberInSurah,
+    juz: ayah.juz,
+    text: ayah.text,
+    audio: ayah.audio,
+    translations: {
+      [language]: translationTextAyahs[index]?.text || '',
+    },
+    translationAudios: {
+      [language]: translationAudioAyahs[index]?.audio || '',
+    },
   }));
 };
 
 export const fetchReciters = async (): Promise<Reciter[]> => {
   const response = await api.get('/edition/format/audio');
-  const reciters = response.data.data
-    .filter(
-      (reciter: any) =>
-        reciter.language === 'ar' ||
-        (reciter.language === 'ur' && reciter.identifier === 'ur.khan')
-    )
+  return response.data.data
     .map((reciter: any) => ({
       id: reciter.identifier,
       name: reciter.englishName,
       style: reciter.type,
-      language: reciter.language as 'ar' | 'ur',
-    }));
-
-  // Add Urdu translation reciter if not present
-  const hasUrduReciter = reciters.some((r: any) => r.language === 'ur');
-  if (!hasUrduReciter) {
-    reciters.push({
-      id: 'ur.khan',
-      name: 'Urdu Translation',
-      style: 'translation',
-      language: 'ur',
-    });
-  }
-
-  return reciters;
+      language: reciter.language,
+      languageName: reciter.englishName,
+    }))
+    .filter(
+      (reciter: Reciter) =>
+        reciter.language === 'ar' || reciter.language !== 'ar'
+    );
 };
