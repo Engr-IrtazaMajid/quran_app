@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useLocation } from 'react-router-dom';
 import { useQuranStore } from '../store/quranStore';
 import { useQuery } from 'react-query';
-import { fetchAyahs } from '../services/api';
+import { fetchAyahs, fetchSurahs } from '../services/api';
 import { Globe2 } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
 
 export const AyahList = () => {
   const { number } = useParams();
+  const location = useLocation();
   const {
     setCurrentAyah,
     currentSurahAyahs,
@@ -22,28 +23,65 @@ export const AyahList = () => {
     isDarkMode,
     setTranslationLanguage,
     setDisplayLanguage,
+    setCurrentSurah,
   } = useQuranStore();
+
+  const { data: surahs } = useQuery('surahs', fetchSurahs, {
+    staleTime: Infinity,
+    onSuccess: (data) => {
+      if (number && !currentSurah) {
+        const surah = data.find((s) => s.number === Number(number));
+        if (surah) {
+          setCurrentSurah({ ...surah, ayahs: [] });
+        }
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (number && surahs) {
+      const surah = surahs.find((s) => s.number === Number(number));
+      if (surah) {
+        setCurrentSurah({ ...surah, ayahs: [] });
+      }
+    }
+  }, [number, setCurrentSurah, surahs]);
+
+  const reciterId = currentReciter?.id || 'ar.alafasy';
 
   useQuery(
     [
       'ayahs',
       number,
-      currentReciter?.id,
+      reciterId,
       audioSettings.withTranslation,
       audioSettings.selectedLanguage,
     ],
     () =>
       fetchAyahs(
         Number(number),
-        currentReciter?.id,
+        reciterId,
         audioSettings.withTranslation,
         audioSettings.selectedLanguage
       ),
     {
-      enabled: !!number && !!currentReciter?.id,
+      enabled: !!number,
       onSuccess: (data) => {
         setCurrentSurahAyahs(data);
-        if (!currentAyah) {
+        // Check if we should preserve the ayah position
+        const state = location.state as {
+          preserveAyah?: boolean;
+          ayahNumber?: number;
+        };
+        if (state?.preserveAyah && state.ayahNumber) {
+          const ayah = data.find((a) => a.numberInSurah === state.ayahNumber);
+          if (ayah) {
+            setCurrentAyah(ayah);
+            return;
+          }
+        }
+        // Otherwise set first ayah
+        if (!currentAyah || currentAyah.numberInSurah > data.length) {
           setCurrentAyah(data[0]);
         }
       },
@@ -61,13 +99,19 @@ export const AyahList = () => {
     }
   }, [currentAyah]);
 
+  const handleAyahClick = (ayah: Ayah) => {
+    if (currentAyah?.number !== ayah.number || !isPlaying) {
+      setCurrentAyah(ayah);
+    }
+  };
+
   if (!currentSurah) {
     return <Navigate to='/' replace />;
   }
 
   return (
-    <div className='space-y-4 mt-24 md:mt-20'>
-      <div className='sticky top-20 bg-gray-50 dark:bg-gray-900 py-4 z-10'>
+    <div className='space-y-4 mt-24 md:mt-20 pb-32'>
+      <div className='sticky top-[4.5rem] bg-gray-50 dark:bg-gray-900 py-4 z-10'>
         <div className='text-center space-y-4'>
           <h2 className='text-xl sm:text-2xl md:text-3xl font-arabic text-gray-900 dark:text-white mb-2'>
             {currentSurah?.name}
@@ -148,7 +192,7 @@ export const AyahList = () => {
                     : 'text-yellow-700'
                   : 'text-gray-900 dark:text-white'
               }`}
-              onClick={() => setCurrentAyah(ayah)}
+              onClick={() => handleAyahClick(ayah)}
             >
               {ayah.text}
             </p>

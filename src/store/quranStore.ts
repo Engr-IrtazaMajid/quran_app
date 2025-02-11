@@ -13,6 +13,8 @@ interface QuranStore {
   audioRef: HTMLAudioElement | null;
   translationAudioRef: HTMLAudioElement | null;
   isLoading: boolean;
+  previousSurah: Surah | null;
+  nextSurah: Surah | null;
   setCurrentSurah: (surah: Surah & { ayahs: Ayah[] }) => void;
   setCurrentAyah: (ayah: Ayah | null) => void;
   setCurrentSurahAyahs: (ayahs: Ayah[]) => void;
@@ -49,6 +51,17 @@ const saveState = (state: QuranStore) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
 };
 
+// Cache surahs to avoid repeated fetches
+let cachedSurahs: Surah[] | null = null;
+
+const fetchAllSurahs = async () => {
+  if (cachedSurahs) return cachedSurahs;
+  const response = await fetch('https://api.alquran.cloud/v1/surah');
+  const data = await response.json();
+  cachedSurahs = data.data;
+  return cachedSurahs;
+};
+
 export const useQuranStore = create<QuranStore>((set, get) => ({
   currentSurah: null,
   currentAyah: null,
@@ -57,17 +70,48 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
   translationReciters: {},
   audioSettings: {
     withTranslation: false,
-    selectedLanguage: 'en',
-    displayLanguage: 'en',
+    selectedLanguage: 'ur',
+    displayLanguage: 'ur',
   },
   isPlaying: false,
   isDarkMode: false,
   audioRef: null,
   translationAudioRef: null,
   isLoading: false,
-  setCurrentSurah: (surah) => {
-    set({ currentSurah: surah });
-    saveState({ ...get(), currentSurah: surah });
+  previousSurah: null,
+  nextSurah: null,
+  setCurrentSurah: async (surah) => {
+    try {
+      const allSurahs = await fetchAllSurahs();
+      const currentIndex = allSurahs.findIndex(
+        (s) => s.number === surah.number
+      );
+
+      // Reset audio state
+      if (get().audioRef) {
+        get().audioRef.pause();
+      }
+      if (get().translationAudioRef) {
+        get().translationAudioRef.pause();
+      }
+
+      set({
+        currentSurah: surah,
+        currentAyah: null,
+        currentSurahAyahs: null,
+        previousSurah: currentIndex > 0 ? allSurahs[currentIndex - 1] : null,
+        nextSurah:
+          currentIndex < allSurahs.length - 1
+            ? allSurahs[currentIndex + 1]
+            : null,
+        isPlaying: false,
+      });
+
+      document.title = `${surah.englishName} - Quran App`;
+      saveState(get());
+    } catch (error) {
+      console.error('Error setting current surah:', error);
+    }
   },
   setCurrentAyah: (ayah) => {
     set({ currentAyah: ayah });
@@ -163,7 +207,8 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
         ...parsedState,
         audioSettings: {
           ...parsedState.audioSettings,
-          selectedLanguage: parsedState.audioSettings?.selectedLanguage || 'en',
+          selectedLanguage: parsedState.audioSettings?.selectedLanguage || 'ur',
+          displayLanguage: parsedState.audioSettings?.displayLanguage || 'ur',
         },
       });
     }
