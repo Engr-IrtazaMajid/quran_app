@@ -17,7 +17,7 @@ export const SurahList: React.FC = () => {
   }
 
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4'>
+    <div className='mt-28 sm:mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4'>
       {surahs?.map((surah) => (
         <Link
           key={surah.number}
