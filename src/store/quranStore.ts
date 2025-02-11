@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Surah, Ayah, Reciter, AudioSettings } from '../types/quran';
+import { fetchSurahs } from '../services/api';
 
 interface QuranStore {
   currentSurah: (Surah & { ayahs: Ayah[] }) | null;
@@ -51,15 +52,13 @@ const saveState = (state: QuranStore) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
 };
 
-// Cache surahs to avoid repeated fetches
 let cachedSurahs: Surah[] | null = null;
 
-const fetchAllSurahs = async () => {
+const fetchAllSurahs = async (): Promise<Surah[]> => {
   if (cachedSurahs) return cachedSurahs;
-  const response = await fetch('https://api.alquran.cloud/v1/surah');
-  const data = await response.json();
-  cachedSurahs = data.data;
-  return cachedSurahs;
+  const data = await fetchSurahs();
+  cachedSurahs = data;
+  return data;
 };
 
 export const useQuranStore = create<QuranStore>((set, get) => ({
@@ -83,16 +82,16 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
   setCurrentSurah: async (surah) => {
     try {
       const allSurahs = await fetchAllSurahs();
-      const currentIndex = allSurahs.findIndex(
+      const currentIndex = allSurahs?.findIndex(
         (s) => s.number === surah.number
       );
 
       // Reset audio state
       if (get().audioRef) {
-        get().audioRef.pause();
+        get().audioRef?.pause();
       }
       if (get().translationAudioRef) {
-        get().translationAudioRef.pause();
+        get().translationAudioRef?.pause();
       }
 
       set({
