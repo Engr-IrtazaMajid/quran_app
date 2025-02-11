@@ -28,6 +28,7 @@ interface QuranStore {
   setIsLoading: (loading: boolean) => void;
   toggleTranslation: () => void;
   setTranslationLanguage: (language: string) => void;
+  preloadNextAyahs: () => void;
   preloadNextAyah: () => void;
   loadStoredState: () => void;
   setDisplayLanguage: (language: string) => void;
@@ -170,33 +171,42 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
   setAudioRef: (ref) => set({ audioRef: ref }),
   setTranslationAudioRef: (ref) => set({ translationAudioRef: ref }),
   setIsLoading: (loading) => set({ isLoading: loading }),
-  preloadNextAyah: () => {
-    const { currentAyah, currentSurahAyahs, audioSettings } = get();
-    if (!currentSurahAyahs || !currentAyah) return;
+  preloadNextAyahs: async () => {
+    const { currentAyah, currentSurahAyahs } = get();
+    if (!currentAyah || !currentSurahAyahs) return;
 
     const currentIndex = currentSurahAyahs.findIndex(
       (ayah) => ayah.number === currentAyah.number
     );
 
-    if (currentIndex === -1 || currentIndex === currentSurahAyahs.length - 1)
-      return;
+    // Preload next 4 ayahs
+    const nextAyahs = currentSurahAyahs.slice(
+      currentIndex + 1,
+      currentIndex + 5
+    );
 
-    const nextAyah = currentSurahAyahs[currentIndex + 1];
-    if (nextAyah?.audio) {
-      const audio = new Audio();
-      audio.src = nextAyah.audio;
-      audio.preload = 'auto';
-
-      if (
-        audioSettings.withTranslation &&
-        nextAyah.translationAudios[audioSettings.selectedLanguage]
-      ) {
-        const translationAudio = new Audio();
-        translationAudio.src =
-          nextAyah.translationAudios[audioSettings.selectedLanguage];
-        translationAudio.preload = 'auto';
+    nextAyahs.forEach(async (ayah) => {
+      // Preload Arabic audio
+      if (ayah.audio) {
+        const audioPreload = new Audio();
+        audioPreload.src = ayah.audio;
+        audioPreload.preload = 'auto';
       }
-    }
+
+      // Preload translation audio if enabled
+      if (get().audioSettings.withTranslation) {
+        const translationAudio =
+          ayah.translationAudios[get().audioSettings.selectedLanguage];
+        if (translationAudio) {
+          const translationPreload = new Audio();
+          translationPreload.src = translationAudio;
+          translationPreload.preload = 'auto';
+        }
+      }
+    });
+  },
+  preloadNextAyah: () => {
+    get().preloadNextAyahs();
   },
   loadStoredState: () => {
     const storedState = localStorage.getItem(STORAGE_KEY);
