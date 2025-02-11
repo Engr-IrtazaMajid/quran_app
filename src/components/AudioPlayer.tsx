@@ -214,10 +214,16 @@ export const AudioPlayer: React.FC = () => {
               <div className='flex flex-col items-center w-full sm:w-auto'>
                 <button
                   onClick={navigateToCurrentAyah}
-                  className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors mb-2'
+                  className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors mb-2 underline'
+                  dir={
+                    audioSettings.selectedLanguage === 'ar' ||
+                    audioSettings.selectedLanguage === 'ur'
+                      ? 'rtl'
+                      : 'ltr'
+                  }
                 >
                   <span className='font-medium'>{currentSurah.name}</span>
-                  <span className='mx-2'>•</span>
+                  <span className='mx-2'>-</span>
                   <span>Verse {currentAyah?.numberInSurah}</span>
                 </button>
                 {isTranslationPlaying && (
