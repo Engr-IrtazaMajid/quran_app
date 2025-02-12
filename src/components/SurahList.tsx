@@ -5,7 +5,7 @@ import { fetchSurahs } from '../services/api';
 import { Link } from 'react-router-dom';
 
 export const SurahList: React.FC = () => {
-  const { audioSettings, currentSurah } = useQuranStore();
+  const { currentSurah } = useQuranStore();
   const { data: surahs, isLoading } = useQuery('surahs', fetchSurahs);
 
   if (isLoading) {
@@ -28,36 +28,30 @@ export const SurahList: React.FC = () => {
               : 'bg-white dark:bg-gray-800 hover:shadow-lg hover:scale-[1.02]'
           }`}
         >
-          <div className='flex justify-between items-start'>
-            <span
-              className={`px-3 py-1 rounded-full text-sm ${
-                currentSurah?.number === surah.number
-                  ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-              }`}
-            >
-              {surah.number}
-            </span>
-          </div>
-          <div className='mt-2'>
-            <h3
-              className={`text-lg font-medium ${
-                currentSurah?.number === surah.number
-                  ? 'text-emerald-700 dark:text-emerald-300'
-                  : 'text-gray-900 dark:text-white'
-              }`}
-              dir={
-                audioSettings.selectedLanguage === 'ar' ||
-                audioSettings.selectedLanguage === 'ur'
-                  ? 'rtl'
-                  : 'ltr'
-              }
-            >
-              {surah.name}
-            </h3>
-            <p className='text-sm text-gray-500 dark:text-gray-400'>
-              {surah.englishName}
-            </p>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center space-x-4'>
+              <div className='w-10 h-10 flex items-center justify-center bg-emerald-100 dark:bg-emerald-900 rounded-full'>
+                <span className='text-emerald-600 dark:text-emerald-400 font-semibold'>
+                  {surah.number}
+                </span>
+              </div>
+              <div>
+                <h3 className='font-semibold text-gray-900 dark:text-white'>
+                  {surah.englishName}
+                </h3>
+                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                  {surah.englishNameTranslation}
+                </p>
+              </div>
+            </div>
+            <div className='text-right'>
+              <p className='text-lg font-arabic text-gray-800 dark:text-gray-200'>
+                {surah.name}
+              </p>
+              <p className='text-sm text-gray-500 dark:text-gray-400'>
+                {surah.numberOfAyahs} verses
+              </p>
+            </div>
           </div>
         </Link>
       ))}
