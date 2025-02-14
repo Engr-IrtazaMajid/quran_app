@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { Surah, Ayah, Reciter, AudioSettings } from '../types/quran';
+import {
+  Surah,
+  Ayah,
+  Reciter,
+  AudioSettings,
+  Bookmark,
+  LastReadPosition,
+} from '../types/quran';
 import { fetchSurahs } from '../services/api';
 
 interface QuranStore {
@@ -16,6 +23,8 @@ interface QuranStore {
   isLoading: boolean;
   previousSurah: Surah | null;
   nextSurah: Surah | null;
+  bookmarks: Bookmark[];
+  lastReadPositions: { [surahNumber: number]: LastReadPosition };
   setCurrentSurah: (surah: Surah & { ayahs: Ayah[] }) => void;
   setCurrentAyah: (ayah: Ayah | null) => void;
   setCurrentSurahAyahs: (ayahs: Ayah[]) => void;
@@ -32,6 +41,9 @@ interface QuranStore {
   preloadNextAyah: () => void;
   loadStoredState: () => void;
   setDisplayLanguage: (language: string) => void;
+  addBookmark: (ayah: Ayah, note?: string) => void;
+  removeBookmark: (ayah: Ayah) => void;
+  isBookmarked: (ayah: Ayah) => boolean;
 }
 
 const STORAGE_KEY = 'quran-app-state';
@@ -49,6 +61,8 @@ const saveState = (state: QuranStore) => {
       displayLanguage: state.audioSettings.displayLanguage,
     },
     isDarkMode: state.isDarkMode,
+    bookmarks: state.bookmarks,
+    lastReadPositions: state.lastReadPositions,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
 };
@@ -80,6 +94,8 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
   isLoading: false,
   previousSurah: null,
   nextSurah: null,
+  bookmarks: [],
+  lastReadPositions: {},
   setCurrentSurah: async (surah) => {
     try {
       const allSurahs = await fetchAllSurahs();
@@ -114,12 +130,27 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
     }
   },
   setCurrentAyah: (ayah) => {
-    set({ currentAyah: ayah });
+    set((state) => ({
+      currentAyah: ayah,
+      lastReadPositions: ayah?.surahNumber
+        ? {
+            ...state.lastReadPositions,
+            [ayah.surahNumber as number]: {
+              ayahNumber: ayah.numberInSurah,
+              timestamp: Date.now(),
+            },
+          }
+        : state.lastReadPositions,
+    }));
     saveState({ ...get(), currentAyah: ayah });
   },
   setCurrentSurahAyahs: (ayahs) => {
-    set({ currentSurahAyahs: ayahs });
-    saveState({ ...get(), currentSurahAyahs: ayahs });
+    const ayahsWithSurah = ayahs.map((ayah) => ({
+      ...ayah,
+      surahNumber: get().currentSurah?.number,
+    }));
+    set({ currentSurahAyahs: ayahsWithSurah });
+    saveState({ ...get(), currentSurahAyahs: ayahsWithSurah });
   },
   setCurrentReciter: (reciter) => {
     set({ currentReciter: reciter });
@@ -219,6 +250,8 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
           selectedLanguage: parsedState.audioSettings?.selectedLanguage || 'ur',
           displayLanguage: parsedState.audioSettings?.displayLanguage || 'ur',
         },
+        bookmarks: parsedState.bookmarks || [],
+        lastReadPositions: parsedState.lastReadPositions || {},
       });
     }
   },
@@ -230,5 +263,29 @@ export const useQuranStore = create<QuranStore>((set, get) => ({
       },
     }));
     saveState(get());
+  },
+  addBookmark: (ayah: Ayah, note?: string) => {
+    set((state) => {
+      const newBookmarks = [
+        ...state.bookmarks,
+        { ayah, timestamp: Date.now(), note },
+      ];
+      saveState({ ...get(), bookmarks: newBookmarks });
+      return { bookmarks: newBookmarks };
+    });
+  },
+  removeBookmark: (ayah: Ayah) => {
+    set((state) => {
+      const newBookmarks = state.bookmarks.filter(
+        (bookmark) => bookmark.ayah.number !== ayah.number
+      );
+      saveState({ ...get(), bookmarks: newBookmarks });
+      return { bookmarks: newBookmarks };
+    });
+  },
+  isBookmarked: (ayah: Ayah) => {
+    return get().bookmarks.some(
+      (bookmark) => bookmark.ayah.number === ayah.number
+    );
   },
 }));

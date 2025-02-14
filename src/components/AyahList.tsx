@@ -1,10 +1,16 @@
 import { useEffect, useRef } from 'react';
-import { useParams, Navigate, useLocation } from 'react-router-dom';
+import { useParams, Navigate, Link, useLocation } from 'react-router-dom';
 import { useQuranStore } from '../store/quranStore';
 import { useQuery } from 'react-query';
 import { fetchAyahs, fetchSurahs } from '../services/api';
-import { Globe2 } from 'lucide-react';
+import { Globe2, Bookmark } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
+import { Ayah } from '../types/quran';
+import {
+  getCacheKey,
+  createTranslationsMap,
+  mapAyahsWithTranslations,
+} from '../utils/quranHelpers';
 
 export const AyahList = () => {
   const { number } = useParams();
@@ -24,6 +30,9 @@ export const AyahList = () => {
     setTranslationLanguage,
     setDisplayLanguage,
     setCurrentSurah,
+    addBookmark,
+    removeBookmark,
+    isBookmarked,
   } = useQuranStore();
 
   const { data: surahs } = useQuery('surahs', fetchSurahs, {
@@ -49,7 +58,15 @@ export const AyahList = () => {
 
   const reciterId = currentReciter?.id || 'ar.alafasy';
 
-  useQuery(
+  const translationsCache = useRef<{
+    [key: string]: {
+      ayahs: Ayah[];
+      translations: { [key: number]: string };
+      reciterId: string;
+    };
+  }>({});
+
+  const { isLoading: isAyahsLoading } = useQuery(
     [
       'ayahs',
       number,
@@ -57,31 +74,62 @@ export const AyahList = () => {
       audioSettings.withTranslation,
       audioSettings.selectedLanguage,
     ],
-    () =>
-      fetchAyahs(
+    async () => {
+      const cacheKey = getCacheKey(number!, audioSettings.selectedLanguage);
+      const cachedData = translationsCache.current[cacheKey];
+
+      if (cachedData && cachedData.reciterId === reciterId) {
+        return mapAyahsWithTranslations(
+          cachedData.ayahs,
+          cachedData.translations,
+          audioSettings.selectedLanguage,
+          audioSettings.withTranslation
+        );
+      }
+
+      const ayahs = await fetchAyahs(
         Number(number),
         reciterId,
         audioSettings.withTranslation,
         audioSettings.selectedLanguage
-      ),
+      );
+
+      translationsCache.current[cacheKey] = {
+        ayahs,
+        reciterId,
+        translations: createTranslationsMap(
+          ayahs,
+          audioSettings.selectedLanguage
+        ),
+      };
+
+      return ayahs;
+    },
     {
       enabled: !!number,
       onSuccess: (data) => {
         setCurrentSurahAyahs(data);
-        // Check if we should preserve the ayah position
+
+        // Handle navigation state
         const state = location.state as {
           preserveAyah?: boolean;
           ayahNumber?: number;
         };
+
         if (state?.preserveAyah && state.ayahNumber) {
-          const ayah = data.find((a) => a.numberInSurah === state.ayahNumber);
-          if (ayah) {
-            setCurrentAyah(ayah);
+          const targetAyah = data.find(
+            (a) => a.numberInSurah === state.ayahNumber
+          );
+          if (targetAyah) {
+            setCurrentAyah(targetAyah);
+            // Clear the state to prevent persisting across navigation
+            window.history.replaceState({}, '');
             return;
           }
         }
-        // Otherwise set first ayah
-        if (!currentAyah || currentAyah.numberInSurah > data.length) {
+
+        // If no state or target ayah not found, use current or first ayah
+        if (!currentAyah || currentAyah.surahNumber !== Number(number)) {
           setCurrentAyah(data[0]);
         }
       },
@@ -105,20 +153,57 @@ export const AyahList = () => {
     }
   };
 
+  const handleBookmarkToggle = (ayah: Ayah) => {
+    if (isBookmarked(ayah)) {
+      removeBookmark(ayah);
+    } else {
+      addBookmark(ayah);
+    }
+  };
+
+  // Simplified toggle handler
+  const handleTranslationToggle = () => {
+    toggleTranslation();
+  };
+
+  if (isAyahsLoading || !currentSurahAyahs) {
+    return (
+      <div className='mt-28 sm:mt-24 flex justify-center items-center min-h-[50vh]'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500' />
+      </div>
+    );
+  }
+
+  if (!currentSurah || currentSurahAyahs.length === 0) {
+    return (
+      <div className='sm:mt-24 flex justify-center items-center min-h-[50vh]'>
+        <div className='text-center text-gray-600 dark:text-gray-400'>
+          <p className='text-lg'>No ayahs found</p>
+          <Link
+            to='/'
+            className='text-emerald-500 hover:text-emerald-600 mt-2 inline-block'
+          >
+            Return to Surah list
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentSurah) {
     return <Navigate to='/' replace />;
   }
 
   return (
-    <div className='space-y-4 mt-24 md:mt-20 pb-32'>
-      <div className='sticky top-[4.5rem] bg-gray-50 dark:bg-gray-900 py-4 z-10'>
+    <div className='space-y-4 md:mt-18 pb-4'>
+      <div className='sticky top-[4.0rem] bg-gray-50 dark:bg-gray-900 pt-10 pb-6 z-10'>
         <div className='text-center space-y-4'>
           <h2 className='text-xl sm:text-2xl md:text-3xl font-arabic text-gray-900 dark:text-white mb-2'>
             {currentSurah?.name}
           </h2>
           <div className='flex flex-row items-center justify-center gap-2 px-4'>
             <button
-              onClick={toggleTranslation}
+              onClick={handleTranslationToggle}
               className={`inline-flex items-center justify-center px-3 sm:px-4 py-2 rounded-full transition-all duration-300 space-x-2 shadow-sm hover:shadow-md
                 ${
                   audioSettings.withTranslation
@@ -181,9 +266,25 @@ export const AyahList = () => {
             >
               {ayah.numberInSurah}
             </span>
+            <button
+              onClick={() => handleBookmarkToggle(ayah)}
+              className={`transition-colors ${
+                isBookmarked(ayah)
+                  ? isDarkMode
+                    ? 'text-emerald-500 hover:text-emerald-600 fill-current'
+                    : 'text-yellow-500 hover:text-yellow-600 fill-current'
+                  : isDarkMode
+                  ? 'text-gray-400 hover:text-emerald-500'
+                  : 'text-gray-400 hover:text-yellow-500'
+              }`}
+            >
+              <Bookmark
+                className='w-5 h-5'
+                fill={isBookmarked(ayah) ? 'currentColor' : 'none'}
+              />
+            </button>
           </div>
           <div className='space-y-4'>
-            {/* Arabic Text */}
             <p
               className={`text-lg sm:text-xl md:text-2xl font-arabic text-right leading-loose ${
                 currentAyah?.number === ayah.number
@@ -197,8 +298,8 @@ export const AyahList = () => {
               {ayah.text}
             </p>
 
-            {/* Translation Text */}
             {audioSettings.withTranslation &&
+              ayah.translations &&
               ayah.translations[audioSettings.selectedLanguage] && (
                 <p
                   className={`text-sm sm:text-base md:text-lg leading-relaxed ${

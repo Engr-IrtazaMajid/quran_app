@@ -9,10 +9,83 @@ import {
   StepForward,
 } from 'lucide-react';
 import { useQuranStore } from '../store/quranStore';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Surah } from '../types/quran';
+
+interface NavigationButtonProps {
+  direction: 'previous' | 'next';
+  surah: Surah | null;
+  className?: string;
+}
+
+const NavigationButton: React.FC<NavigationButtonProps> = ({
+  direction,
+  surah,
+  className,
+}) => {
+  if (!surah) {
+    return <div className={`w-6 md:w-24 ${className}`} />;
+  }
+
+  const Icon = direction === 'previous' ? StepBack : StepForward;
+  const label = direction === 'previous' ? 'Previous' : 'Next';
+
+  return (
+    <Link
+      to={`/surah/${surah.number}`}
+      className={`flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all duration-200 hover:scale-105 ${className}`}
+    >
+      {direction === 'previous' && <Icon className='w-4 h-4 md:w-5 md:h-5' />}
+      <div className='hidden md:flex items-center space-x-1'>
+        <span className='text-xs opacity-75'>{label}:</span>
+        <span className='text-sm font-medium'>{surah.name}</span>
+      </div>
+      {direction === 'next' && <Icon className='w-4 h-4 md:w-5 md:h-5' />}
+    </Link>
+  );
+};
+
+const PlayButton: React.FC<{
+  isPlaying: boolean;
+  isLoading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}> = ({ isPlaying, isLoading, disabled, onClick }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className='rounded-full text-white bg-gradient-to-r from-emerald-500 to-emerald-600 
+      hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 
+      w-10 h-10 md:w-12 md:h-12 flex items-center justify-center shadow-lg hover:shadow-emerald-500/25
+      transition-all duration-200 hover:scale-105'
+  >
+    {isLoading ? (
+      <Loader2 className='w-4 h-4 md:w-5 md:h-5 animate-spin' />
+    ) : isPlaying ? (
+      <Pause className='w-4 h-4 md:w-5 md:h-5' />
+    ) : (
+      <Play className='w-4 h-4 md:w-5 md:h-5 ml-0.5' />
+    )}
+  </button>
+);
+
+const ControlButton: React.FC<{
+  icon: React.ReactNode;
+  onClick: () => void;
+  disabled: boolean;
+}> = ({ icon, onClick, disabled }) => (
+  <button
+    className='p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-200 hover:scale-105'
+    disabled={disabled}
+    onClick={onClick}
+  >
+    {icon}
+  </button>
+);
 
 export const AudioPlayer: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const audioRef = useRef<HTMLAudioElement>(null);
   const translationAudioRef = useRef<HTMLAudioElement>(null);
   const [isTranslationPlaying, setIsTranslationPlaying] = useState(false);
@@ -32,6 +105,8 @@ export const AudioPlayer: React.FC = () => {
     previousSurah,
     nextSurah,
   } = useQuranStore();
+
+  const isAyahListView = location.pathname.includes('/surah/');
 
   useEffect(() => {
     if (audioRef.current) {
@@ -186,103 +261,83 @@ export const AudioPlayer: React.FC = () => {
         currentAyah.number;
 
   return (
-    <div className='fixed bottom-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm shadow-lg border-t border-gray-200 dark:border-gray-800'>
+    <div className='fixed bottom-[52px] md:bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 z-30 shadow-lg'>
       <div className='container mx-auto px-4'>
         <audio ref={audioRef} onEnded={handleArabicAudioEnd} />
         <audio ref={translationAudioRef} onEnded={handleTranslationAudioEnd} />
 
         {currentSurah && (
-          <div className='py-2 sm:py-4 flex flex-col items-center'>
-            <div className='flex items-center justify-between w-full'>
-              {previousSurah ? (
-                <Link
-                  to={`/surah/${previousSurah.number}`}
-                  className='flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors'
-                >
-                  <StepBack className='w-6 h-6' />
-                  <div className='text-xs opacity-75'>Previous</div>
-                  <div className='hidden sm:block'>
-                    <div className='text-sm font-medium'>
-                      {previousSurah.name}
-                    </div>
-                  </div>
-                </Link>
-              ) : (
-                <div className='w-16' />
-              )}
-
-              <div className='flex flex-col items-center w-full sm:w-auto'>
-                <button
-                  onClick={navigateToCurrentAyah}
-                  className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors mb-2 underline'
-                  dir={
-                    audioSettings.selectedLanguage === 'ar' ||
-                    audioSettings.selectedLanguage === 'ur'
-                      ? 'rtl'
-                      : 'ltr'
-                  }
-                >
-                  <span className='font-medium'>{currentSurah.name}</span>
-                  <span className='mx-2'>-</span>
+          <div className='py-3 sm:py-4 flex flex-col items-center'>
+            {!isAyahListView && (
+              <button
+                onClick={navigateToCurrentAyah}
+                className='text-sm text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors mb-3 group'
+                dir={
+                  audioSettings.selectedLanguage === 'ar' ||
+                  audioSettings.selectedLanguage === 'ur'
+                    ? 'rtl'
+                    : 'ltr'
+                }
+              >
+                <span className='font-medium underline group-hover:text-emerald-500 dark:group-hover:text-emerald-400'>
+                  <span>{currentSurah.name}</span>
+                  <span className='mx-1'>•</span>
                   <span>Verse {currentAyah?.numberInSurah}</span>
-                </button>
-                {isTranslationPlaying && (
-                  <div className='text-xs text-emerald-500 mt-1 animate-pulse'>
-                    Playing {audioSettings.selectedLanguage.toUpperCase()}
-                  </div>
-                )}
+                </span>
+              </button>
+            )}
 
-                <div className='flex items-center justify-center space-x-5'>
-                  <button
-                    className='p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors'
-                    disabled={isFirstAyah || isLoading}
-                    onClick={handlePrevAyah}
-                  >
-                    <SkipBack className='w-6 h-6 text-gray-600 dark:text-gray-300' />
-                  </button>
+            {isTranslationPlaying && (
+              <div className='text-xs text-emerald-500 mt-1 mb-2 animate-pulse'>
+                Playing {audioSettings.selectedLanguage.toUpperCase()}
+              </div>
+            )}
 
-                  <button
-                    onClick={handlePlayPause}
-                    disabled={!currentAyah?.audio || isLoading}
-                    className='rounded-full text-white bg-gradient-to-r from-emerald-500 to-emerald-600 
-                      hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 
-                      transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg
-                      w-14 h-14 sm:w-12 sm:h-12 flex items-center justify-center'
-                  >
-                    {isLoading ? (
-                      <Loader2 className='w-6 h-6 animate-spin' />
-                    ) : isPlaying ? (
-                      <Pause className='w-6 h-6' />
-                    ) : (
-                      <Play className='w-6 h-6' />
-                    )}
-                  </button>
-
-                  {/* Next Ayah */}
-                  <button
-                    className='p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors'
-                    disabled={isLastAyah || isLoading}
-                    onClick={handleNextAyah}
-                  >
-                    <SkipForward className='w-6 h-6 text-gray-600 dark:text-gray-300' />
-                  </button>
-                </div>
+            <div className='flex items-center justify-center md:justify-between w-full px-2 md:px-0'>
+              <div className='hidden md:block'>
+                <NavigationButton direction='previous' surah={previousSurah} />
               </div>
 
-              {nextSurah ? (
-                <Link
-                  to={`/surah/${nextSurah.number}`}
-                  className='flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors'
-                >
-                  <div className='text-xs opacity-75'>Next</div>
-                  <div className='hidden sm:block'>
-                    <div className='text-sm font-medium'>{nextSurah.name}</div>
-                  </div>
-                  <StepForward className='w-6 h-6' />
-                </Link>
-              ) : (
-                <div className='w-16' />
-              )}
+              <div className='flex items-center space-x-4 md:space-x-6'>
+                <NavigationButton
+                  direction='previous'
+                  surah={previousSurah}
+                  className='md:hidden'
+                />
+
+                <ControlButton
+                  icon={
+                    <SkipBack className='w-4 h-4 md:w-5 md:h-5 text-gray-600 dark:text-gray-300' />
+                  }
+                  onClick={handlePrevAyah}
+                  disabled={isFirstAyah || isLoading}
+                />
+
+                <PlayButton
+                  isPlaying={isPlaying}
+                  isLoading={isLoading}
+                  disabled={!currentAyah?.audio || isLoading}
+                  onClick={handlePlayPause}
+                />
+
+                <ControlButton
+                  icon={
+                    <SkipForward className='w-4 h-4 md:w-5 md:h-5 text-gray-600 dark:text-gray-300' />
+                  }
+                  onClick={handleNextAyah}
+                  disabled={isLastAyah || isLoading}
+                />
+
+                <NavigationButton
+                  direction='next'
+                  surah={nextSurah}
+                  className='md:hidden'
+                />
+              </div>
+
+              <div className='hidden md:block'>
+                <NavigationButton direction='next' surah={nextSurah} />
+              </div>
             </div>
           </div>
         )}

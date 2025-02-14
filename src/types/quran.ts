@@ -12,9 +12,16 @@ export interface Ayah {
   text: string;
   numberInSurah: number;
   juz: number;
-  translations: { [key: string]: string };
+  translations?: { [key: string]: string };
   audio?: string;
   translationAudios: { [key: string]: string };
+  surahNumber?: number;
+}
+
+export interface Bookmark {
+  ayah: Ayah;
+  timestamp: number;
+  note?: string;
 }
 
 export interface Reciter {
@@ -35,8 +42,8 @@ interface Language {
   code: string;
   name: string;
   nativeName: string;
-  edition: string; // Add edition ID for translations
-  hasAudio?: boolean; // Flag to indicate if audio is available
+  edition: string;
+  hasAudio?: boolean;
 }
 
 export const SUPPORTED_LANGUAGES: Language[] = [
@@ -83,6 +90,11 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     hasAudio: true,
   },
 ];
+
+export interface LastReadPosition {
+  ayahNumber: number;
+  timestamp: number;
+}
 
 // No Audio available for the following languages but can be use for text translations only
 // { code: 'uz', name: 'Uzbek', nativeName: "O'zbek", edition: 'uz.sodik', hasAudio: false },
