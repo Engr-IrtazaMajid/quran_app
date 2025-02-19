@@ -1,10 +1,15 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
+  plugins: [
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        globDirectory: 'dist', // Change from dev-dist to dist
+        globPatterns: ['**/*.{js,wasm,css,html}'],
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
+      },
+    }),
+  ],
 });

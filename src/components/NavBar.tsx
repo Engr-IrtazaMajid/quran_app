@@ -97,15 +97,6 @@ export const NavBar = () => {
       <header className='bg-white dark:bg-gray-800 shadow-md fixed top-0 left-0 right-0 z-50 md:hidden'>
         <div className='px-3 py-2'>
           <div className='flex items-center justify-between'>
-            {/* <div className='flex items-center space-x-2'>
-              {!isRootPage && (
-                <button
-                  onClick={() => navigate(-1)}
-                  className='p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full'
-                >
-                  <ArrowLeft className='w-4 h-4 text-gray-500 dark:text-gray-400' />
-                </button>
-              )} */}
             <h1 className='text-base font-semibold text-gray-900 dark:text-white truncate max-w-[200px]'>
               Quran
             </h1>
