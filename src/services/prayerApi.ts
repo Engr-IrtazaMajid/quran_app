@@ -13,6 +13,14 @@ const convertTo12HourFormat = (time: string): string => {
   return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
 };
 
+// Helper function to adjust time by minutes
+const adjustTime = (time: string, minutesAdjustment: number): string => {
+  const [hour, minute] = time.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hour, minute + minutesAdjustment);
+  return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
 export const fetchPrayerTimes = async (
   coordinates: Coordinates
 ): Promise<PrayerTimes> => {
@@ -34,6 +42,9 @@ export const fetchPrayerTimes = async (
 
   const timings = response.data.data.timings;
 
+  // Calculate Sehri time (10 minutes before Fajr)
+  const sehriTime = adjustTime(timings.Fajr, -10);
+
   return {
     fajr: convertTo12HourFormat(timings.Fajr),
     sunrise: convertTo12HourFormat(timings.Sunrise),
@@ -41,5 +52,7 @@ export const fetchPrayerTimes = async (
     asr: convertTo12HourFormat(timings.Asr),
     maghrib: convertTo12HourFormat(timings.Maghrib),
     isha: convertTo12HourFormat(timings.Isha),
+    sehri: convertTo12HourFormat(sehriTime),
+    iftar: convertTo12HourFormat(timings.Maghrib),
   };
 };
