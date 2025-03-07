@@ -21,4 +21,5 @@ export interface HijriDateInfo {
   monthName: string;
   monthLength: number;
   gregorianDate: Date;
+  cityName?: string;
 }

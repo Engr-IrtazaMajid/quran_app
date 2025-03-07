@@ -117,13 +117,20 @@ export const IslamicCalendar: React.FC = () => {
   return (
     <div className='bg-white/95 dark:bg-gray-800/95 rounded-xl md:rounded-2xl shadow-xl p-2.5 md:p-8 backdrop-blur-lg border border-gray-100 dark:border-gray-700'>
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-0 mb-3 md:mb-8'>
-        <div className='flex items-center gap-2'>
-          <div className='p-1.5 md:p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg md:rounded-xl'>
-            <Calendar className='w-4 h-4 md:w-5 md:h-5 text-emerald-500' />
+        <div className='flex flex-col gap-1'>
+          <div className='flex items-center gap-2'>
+            <div className='p-1.5 md:p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg md:rounded-xl'>
+              <Calendar className='w-4 h-4 md:w-5 md:h-5 text-emerald-500' />
+            </div>
+            <h2 className='text-base md:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent'>
+              Islamic Calendar
+            </h2>
           </div>
-          <h2 className='text-base md:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent'>
-            Islamic Calendar
-          </h2>
+          {currentDate?.cityName && (
+            <span className='text-xs md:text-sm text-gray-600 dark:text-gray-400 ml-8'>
+              {currentDate.cityName}
+            </span>
+          )}
         </div>
         <div className='flex items-center gap-1'>
           <button

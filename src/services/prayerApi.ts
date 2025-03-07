@@ -43,7 +43,7 @@ export const fetchPrayerTimes = async (
   const timings = response.data.data.timings;
 
   // Calculate Sehri time (10 minutes before Fajr)
-  const sehriTime = adjustTime(timings.Fajr, -10);
+  const sehriTime = adjustTime(timings.Fajr, -2);
 
   return {
     fajr: convertTo12HourFormat(timings.Fajr),

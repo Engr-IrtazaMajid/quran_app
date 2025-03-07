@@ -80,9 +80,10 @@ export const PrayerTimes: React.FC = () => {
     [string, string, number]
   >(['', '', 0]);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [cityName, setCityName] = useState<string>('Lahore');
 
-  // Default location (Mecca, Saudi Arabia) in case of geolocation failure
-  const fallbackCoordinates = { latitude: 21.3891, longitude: 39.8579 };
+  // Default location (Lahore, Pakistan) in case of geolocation failure
+  const fallbackCoordinates = { latitude: 31.5204, longitude: 74.3587 };
 
   useEffect(() => {
     if (prayerTimes) {
@@ -112,6 +113,12 @@ export const PrayerTimes: React.FC = () => {
             try {
               const times = await fetchPrayerTimes(coords);
               setPrayerTimes(times);
+              // Get city name from coordinates
+              const response = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.latitude}&longitude=${coords.longitude}&localityLanguage=en`
+              );
+              const data = await response.json();
+              setCityName(data.city || data.locality || 'Unknown City');
               setError(null);
             } catch (err) {
               setError(`Failed to fetch prayer times: ${(err as any).message}`);
@@ -120,8 +127,11 @@ export const PrayerTimes: React.FC = () => {
             }
           },
           async () => {
-            console.log('Location access denied, using fallback coordinates');
+            console.log(
+              'Location access denied, using fallback coordinates (Lahore)'
+            );
             setCoordinates(fallbackCoordinates);
+            setCityName('Lahore');
             try {
               const times = await fetchPrayerTimes(fallbackCoordinates);
               setPrayerTimes(times);
@@ -136,6 +146,7 @@ export const PrayerTimes: React.FC = () => {
       } else {
         try {
           setCoordinates(fallbackCoordinates);
+          setCityName('Lahore');
           const times = await fetchPrayerTimes(fallbackCoordinates);
           setPrayerTimes(times);
           setError(null);
@@ -173,13 +184,18 @@ export const PrayerTimes: React.FC = () => {
   return (
     <div className='max-w-7xl mx-auto bg-white/95 dark:bg-gray-800/95 rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-8 backdrop-blur-lg border border-gray-100 dark:border-gray-700'>
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6 md:mb-8'>
-        <div className='flex items-center gap-3'>
-          <div className='p-2.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl'>
-            <Clock className='w-5 h-5 md:w-6 md:h-6 text-emerald-500' />
+        <div className='flex flex-col gap-1'>
+          <div className='flex items-center gap-3'>
+            <div className='p-2.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl'>
+              <Clock className='w-5 h-5 md:w-6 md:h-6 text-emerald-500' />
+            </div>
+            <h2 className='text-xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent'>
+              Prayer Times
+            </h2>
           </div>
-          <h2 className='text-xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent'>
-            Prayer Times
-          </h2>
+          <span className='text-sm text-gray-600 dark:text-gray-400 ml-12'>
+            {cityName}
+          </span>
         </div>
         {nextPrayerInfo[0] && (
           <div className='flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 md:px-6 py-2.5 rounded-full shadow-lg shadow-emerald-500/20 text-center whitespace-nowrap'>
